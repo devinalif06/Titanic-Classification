@@ -1,86 +1,140 @@
 # Titanic Survival Prediction
 
-A binary classification project predicting whether a Titanic passenger survived, using the classic Kaggle *Titanic — Machine Learning from Disaster* dataset.
+This repository contains a machine learning project focused on predicting passenger survival aboard the Titanic using the classic Kaggle *Titanic — Machine Learning from Disaster* dataset. The dataset includes demographic, ticket, and cabin information for 891 passengers. Core attributes include passenger class, sex, age, fare, and family relations. The main goal is to build a classification model that accurately predicts whether a passenger survived.
 
-## Dataset
+---
 
-| Item | Detail |
-|------|--------|
-| Source | [Kaggle Titanic Competition](https://www.kaggle.com/competitions/titanic) |
-| Training data | 891 rows, 12 columns |
-| Test data | Separate (`test.csv`), no `Survived` column |
-| Target | `Survived` (0 = did not survive, 1 = survived) |
-| Evaluation metric | Accuracy |
+## 📌 Problem Statement
 
-## Project Structure
+Predicting survival outcomes from historical disaster data is a classic benchmark for classification workflows involving missing data, feature engineering, and imbalanced classes. This project aims to:
 
-```
-├── train.csv               # Training data
-├── test.csv                # Test data (for submission)
-├── titanic.ipynb            # Main notebook: EDA + preprocessing + modeling
-├── titanic.csv               # Prediction output (submission)
-└── README.md
-```
+- Develop a classification model to predict `Survived` using demographic and ticket-related features.
+- Handle missing data (especially `Age` and `Cabin`) using informed imputation rather than naive dropping.
+- Engineer features that capture family-level survival patterns (`Family_Size`, `Family_Survival`) beyond individual-level attributes.
+- Evaluate and tune the model using cross-validation to select the best-performing hyperparameters.
 
-## Workflow
+---
 
-### 1. Exploratory Data Analysis (EDA)
-- Checked data structure, missing values, and duplicates.
-- Target distribution: mild class imbalance (61.6% did not survive vs 38.4% survived).
-- Outlier detection (IQR method) on `Age` and `Fare` — outliers were kept since they were still domain-plausible.
-- Numerical correlation (`Pclass`, `Fare`, etc.) and Chi-Square test for categorical features against `Survived`.
+## 🧠 Features
 
-**Key findings:**
-| # | Finding |
-|---|---------|
-| 1 | `Sex` is the most significant categorical predictor (Chi-Square p ≈ 0.0000) |
-| 2 | `Pclass` has a fairly strong negative correlation with `Survived` (r ≈ -0.34) and correlates strongly with `Fare` (r ≈ -0.55) |
-| 3 | `Cabin` is not significant against `Survived` (p ≈ 0.18) and has 77.1% missing values → dropped |
-| 4 | `Fare` is right-skewed → handled with binning (`qcut`, 5 categories) |
-| 5 | `Age`, `SibSp`, `Parch` show weak individual correlation → motivated the creation of combined features |
+The dataset contains the following features:
 
-### 2. Preprocessing & Feature Engineering
-- **Title** extracted from the `Name` column, used to impute `Age` based on the median per title.
-- **Family_Size** = `SibSp` + `Parch`.
-- **Family_Survival** built by grouping passengers with the same `Last_Name` + `Fare`, and the same `Ticket`, capturing the pattern that "one family tends to survive together" (computed without data leakage — only using information from other family members).
-- **FareBin_Code** and **AgeBin_Code**: result of binning (`qcut`) + label encoding.
-- Final features used by the model: `Pclass`, `Sex`, `Family_Size`, `Family_Survival`, `FareBin_Code`, `AgeBin_Code`.
-- `StandardScaler` is fit only on the training data, then applied (*transform*) to the test data (no leakage).
+| Feature Name | Description | Type |
+|---|---|---|
+| `Pclass` | Passenger ticket class (1st, 2nd, 3rd) | Categorical |
+| `Sex` | Passenger gender | Categorical |
+| `Age` | Passenger age in years (imputed via median per Title) | Numerical |
+| `SibSp` | Number of siblings/spouses aboard | Numerical |
+| `Parch` | Number of parents/children aboard | Numerical |
+| `Fare` | Ticket fare paid | Numerical |
+| `Family_Size` | Engineered: `SibSp` + `Parch` | Numerical |
+| `Family_Survival` | Engineered: survival signal from family/ticket group | Numerical |
+| `Survived` | Target variable: whether the passenger survived | Binary |
 
-### 3. Modeling
-- Algorithm: **K-Nearest Neighbors (KNN)**.
-- Hyperparameter tuning with `GridSearchCV` (10-fold cross-validation, `roc_auc` scoring).
-- Grid: `n_neighbors [6–22]`, `weights [uniform, distance]`, `leaf_size [1–46]`, `algorithm [auto]`.
+---
 
-**Best result:**
-| Aspect | Result |
-|--------|--------|
-| Best CV Score | ROC-AUC 0.8818 |
-| Best params | `n_neighbors=14`, `leaf_size=26` |
-
-### 4. Submission
-The final model predicts on `test.csv`, and results are saved to `titanic.csv` in `PassengerId, Survived` format as required by Kaggle.
-
-## Requirements
+## 🧪 Project Structure
 
 ```
-pandas
-numpy
-matplotlib
-seaborn
-scipy
-scikit-learn
+titanic/
+├── data/
+│   ├── train.csv             # Training data with Survived labels
+│   └── test.csv               # Test data for submission
+├── models/
+│   └── model_final.pkl        # Saved trained model (optional)
+├── notebooks/
+│   └── titanic.ipynb            # EDA, preprocessing, feature engineering, and modeling
+├── output/
+│   └── titanic.csv               # Final submission predictions
+├── requirements.txt          # Python dependencies
+├── .gitignore
+└── README.md                 # Project documentation
 ```
 
-## How to Run
+---
 
-1. Place `train.csv` and `test.csv` in the same directory as the notebook.
-2. Run `titanic.ipynb` from top to bottom.
-3. The submission file will automatically be saved as `titanic.csv`.
+## 🔁 Workflow
 
-## Notes & Next Steps
+This project follows a typical machine learning workflow:
 
-- The current CV scoring uses **ROC-AUC**, while the Kaggle leaderboard is scored on **accuracy** — consider switching to `scoring='accuracy'` in `GridSearchCV` so the tuning aligns with the competition metric.
-- Compare KNN's performance against other models (Logistic Regression, Random Forest, Gradient Boosting) to see if there's room for improvement.
-- Add explicit `StratifiedKFold` to ensure consistent class proportions across folds.
-- Further evaluate using a confusion matrix to inspect the precision/recall trade-off, not just accuracy/ROC-AUC.
+1. **Data Collection and Preparation**
+   - Downloaded from Kaggle (see [Dataset & Credits](#-dataset--credits) section).
+   - Train and test sets are provided separately by the competition.
+
+2. **Data Preprocessing**
+   - Handled missing values in `Age` (median per extracted `Title`) and dropped `Cabin` (77% missing, not statistically significant against `Survived`).
+   - Checked for duplicates (none found) and outliers via IQR (kept, as values were domain-plausible).
+
+3. **Exploratory Data Analysis (EDA)**
+   - Analyzed target distribution, feature distributions, and outliers.
+   - Visualized numerical correlation and ran Chi-Square tests for categorical features against `Survived`.
+
+4. **Feature Engineering**
+   - Extracted `Title` from `Name` for age imputation.
+   - Built `Family_Size` and `Family_Survival` to capture family-level survival patterns.
+   - Binned `Fare` and `Age` into categories, then label-encoded them.
+
+5. **Model Training**
+   - Trained a **K-Nearest Neighbors (KNN)** classifier on the engineered feature set.
+   - Hyperparameter tuning performed using `GridSearchCV` (10-fold cross-validation, `roc_auc` scoring).
+
+6. **Model Evaluation**
+   - Evaluated using cross-validated ROC-AUC.
+   - Best-performing configuration: **KNN (n_neighbors=14, leaf_size=26)**.
+
+---
+
+## 📈 Model Performance
+
+A single model family (KNN) was tuned across a hyperparameter grid. The best configuration was selected based on cross-validated ROC-AUC:
+
+| Model | CV ROC-AUC | Best Parameters |
+|---|---|---|
+| KNN (tuned) | **0.8818** | `n_neighbors=14`, `leaf_size=26`, `weights` and `algorithm` selected via grid search |
+
+**Note:** cross-validation scoring used ROC-AUC, while the Kaggle leaderboard is scored on accuracy — the two metrics don't always align, so the leaderboard score may differ from the CV result above.
+
+---
+
+## 📂 Dataset & Credits
+
+The dataset used in this project was sourced from the Kaggle Titanic competition. You can access the original dataset and challenge description via the following link:
+
+🔗 [Titanic - Machine Learning from Disaster](https://www.kaggle.com/competitions/titanic)
+
+We would like to extend our appreciation to Kaggle for making this resource available for public use.
+
+---
+
+## 🚀 How to Run
+
+To run this project on your local machine, follow these steps:
+
+### 1. Clone the Repository
+
+```
+git clone https://github.com/<your-username>/titanic.git
+cd titanic
+```
+
+### 2. Create and Activate a Virtual Environment (Optional but Recommended)
+
+```
+python -m venv venv
+source venv/bin/activate      # On Linux/macOS
+venv\Scripts\activate.bat     # On Windows
+```
+
+### 3. Install Dependencies
+
+```
+pip install -r requirements.txt
+```
+
+### 4. Run the Jupyter Notebook
+
+Make sure you have Jupyter installed, then run:
+
+```
+jupyter notebook notebooks/titanic.ipynb
+```
